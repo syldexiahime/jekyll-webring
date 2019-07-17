@@ -27,8 +27,9 @@ module Jekyll
 		HTML
 
 		CONFIG = Jekyll.configuration({})['webring']
+		LAYOUT_FILE = "#{ Jekyll.configuration['layouts_dir'] }/#{ CONFIG['layout_file'] }.html"
 
-		@max_summary_length = 256
+		@max_summary_length = CONFIG['max_summary_length'] || 256
 
 		@feeds = [];
 		def self.feeds ()
@@ -41,7 +42,7 @@ module Jekyll
 						raw_feed = RSS::Parser.parse rss
 						raw_feed.items.each do |item|
 							sanitized = Sanitize.clean (item.content_encoded || item.description)
-							summary = "#{ sanitized[0...@max_summary_length] }"
+							summary = "#{ sanitized[0 ... @max_summary_length] }"
 
 							feed_item = {
 								'source_title' => raw_feed.channel.title,
@@ -81,6 +82,7 @@ module Jekyll
 
 		def render (context)
 			date = get_value(context, @text.strip)
+
 			feeds = Jekyll::Webring.feeds
 
 			items = []
@@ -100,7 +102,28 @@ module Jekyll
 			site = context.registers[:site]
 			liquid_opts = site.config['liquid']
 
-			template = site.liquid_renderer.file('').parse(Jekyll::Webring::TEMPLATE)
+			content = Jekyll::Webring::TEMPLATE
+			payload = context
+
+			# stuff beyond this point mainly hacked together from jekyll internals
+			filename = Jekyll::Webring::LAYOUT_FILE
+			if File.file? filename
+				begin
+					content = File.read filename
+					if content =~ Document::YAML_FRONT_MATTER_REGEXP
+						content = $POSTMATCH
+						payload = payload.merge SafeYAML.load(Regexp.last_match(1))
+					end
+				rescue Psych::SyntaxError => e
+					Jekyll.logger.warn "YAML Exception reading #{filename}: #{e.message}"
+					raise e if site.config["strict_front_matter"]
+				rescue StandardError => e
+					Jekyll.logger.warn "Error reading file #{filename}: #{e.message}"
+					raise e if site.config["strict_front_matter"]
+				end
+			end
+
+			template = site.liquid_renderer.file((File.file? filename) ? filename : '').parse(content)
 
 			info = {
 				:registers        => { :site => site, :page => context['page'] },
@@ -108,7 +131,6 @@ module Jekyll
 				:strict_variables => liquid_opts['strict_variables'],
 			}
 
-			payload = context
 			payload['webring'] = items
 
 			template.render!(payload, info)
