@@ -98,7 +98,6 @@ module Jekyll
 
 		def get_items_from_feeds (param)
 			items = []
-			date = param || Time.now
 
 			feeds = Jekyll::Webring.feeds
 			case param
@@ -106,7 +105,8 @@ module Jekyll
 					feeds.each do |feed_items|
 						items << feed_items.sample
 					end
-				when Date, '', 
+				when Time, '', nil 
+					date = param || Time.now
 					feeds.each do |feed_items|
 						item_to_add = nil
 
