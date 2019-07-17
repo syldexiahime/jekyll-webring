@@ -83,44 +83,56 @@ module Jekyll
 		end
 
 		def get_value (context, expression)
-			lookup_path = expression.split('.')
-			result = context
-			lookup_path.each do |variable|
-				result = result[variable] if result
+			result = nil
+
+			unless expression.empty?
+				lookup_path = expression.split('.')
+				result = context
+				lookup_path.each do |variable|
+					result = result[variable] if result
+				end
 			end
 
 			result
 		end
 
-		def get_items_for_date (date)
+		def get_items_from_feeds (param)
 			items = []
+			date = param || Time.now
 
 			feeds = Jekyll::Webring.feeds
-			feeds.each do |feed_items|
-				item_to_add = nil
-
-				feed_items.each do |item|
-					if item['date'] < date
-						item_to_add = item
-						break
-					end
-				end
-
-				if item_to_add
-					items << item_to_add
-					next
-				end
-
-				case Jekyll::Webring::CONFIG['no_item_at_date_behaviour']
-					when 'use_oldest'
-						items << feed_items.last
-					when 'use_latest'
-						items << feed_items.first
-					when 'random'
+			case param
+				when 'random'
+					feeds.each do |feed_items|
 						items << feed_items.sample
-					when 'ignore', ''
-						next
-				end
+					end
+				when Date, '', 
+					feeds.each do |feed_items|
+						item_to_add = nil
+
+						feed_items.each do |item|
+							if item['date'] < date
+								item_to_add = item
+								break
+							end
+						end
+
+						if item_to_add
+							items << item_to_add
+							next
+						end
+
+						case Jekyll::Webring::CONFIG['no_item_at_date_behaviour']
+							when 'use_oldest'
+								items << feed_items.last
+							when 'use_latest'
+								items << feed_items.first
+							when 'random'
+								items << feed_items.sample
+							when 'ignore', ''
+								next
+						end
+					end
 			end
 
 			items = items.sort_by { |item| item['date'] }
@@ -130,15 +142,15 @@ module Jekyll
 
 		def render (context)
 			site = context.registers[:site]
-			date = get_value(context, @text.strip)
+			param = get_value(context, @text.strip)
 
 			webring_data = Jekyll::Webring.get_data(site)
 
-			if webring_data[date]
-				items = webring_data[date]
+			if webring_data[param]
+				items = webring_data[param]
 			else
-				items = get_items_for_date(date)
-				webring_data[date] = items
+				items = get_items_from_feeds(param)
+				webring_data[param] = items if param
 
 				filename = Jekyll::Webring::DATA_FILE
 				dirname = File.dirname filename
