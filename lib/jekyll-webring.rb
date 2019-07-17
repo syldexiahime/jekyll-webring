@@ -137,7 +137,7 @@ module Jekyll
 
 			items = items.sort_by { |item| item['date'] }
 
-			items.take 3
+			items
 		end
 
 		def render (context)
@@ -196,7 +196,7 @@ module Jekyll
 				:strict_variables => liquid_opts['strict_variables'],
 			}
 
-			payload['webring'] = items
+			payload['webring'] = items.take(Jekyll::Webring::CONFIG['num_items'] || 3)
 
 			template.render!(payload, info)
 		end
