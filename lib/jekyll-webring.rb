@@ -87,17 +87,34 @@ module Jekyll
 
 			items = []
 			feeds.each do |feed_items|
+				item_to_add = nil
+
 				feed_items.each do |item|
 					if item['date'] < date
-						items << item
+						item_to_add = item
 						break
 					end
 				end
 
-				if items.length > 2
-					break
+				if item_to_add
+					items << item_to_add
+					next
+				end
+
+				case Jekyll::Webring::CONFIG['no_item_at_date_behaviour']
+					when 'use_oldest'
+						items << feed_items.last
+					when 'use_latest'
+						items << feed_items.first
+					when 'random'
+						items << feed_items.sample
+					when 'ignore', ''
+						next
 				end
 			end
+
+			items = items.sort_by { |item| item['date'] }
+			items = items.take 3
 
 			site = context.registers[:site]
 			liquid_opts = site.config['liquid']
