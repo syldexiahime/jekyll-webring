@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 	spec.email         = ["sophie@ofthewi.red"]
 	spec.summary       = "A Jekyll plugin to generate a webring from rss feeds"
 	spec.homepage      = "https://git.sr.ht/~syldexia/jekyll-webring"
-	spec.license       = "GNU GPLv3"
+	spec.license       = "GPL-3.0+"
 	
 	spec.files         = `git ls-files -z`.split("\x0")
 	spec.require_paths = ["lib"]
