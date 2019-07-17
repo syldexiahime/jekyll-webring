@@ -3,6 +3,8 @@
 require 'rss'
 require 'open-uri'
 require 'sanitize'
+require 'yaml'
+require 'fileutils'
 
 module Jekyll
 	module Webring
@@ -28,6 +30,7 @@ module Jekyll
 
 		CONFIG = Jekyll.configuration({})['webring']
 		LAYOUT_FILE = "#{ Jekyll.configuration['layouts_dir'] }/#{ CONFIG['layout_file'] }.html"
+		DATA_FILE = "#{ Jekyll.configuration['data_dir'] }/webring.yml"
 
 		@max_summary_length = CONFIG['max_summary_length'] || 256
 
@@ -62,6 +65,15 @@ module Jekyll
 
 			@feeds
 		end
+
+		@data = nil
+		def self.get_data (site)
+			unless @data
+				@data = site.data['webring'] || {}
+			end
+
+			@data
+		end
 	end
 
 	class WebringTag < Liquid::Tag
@@ -80,12 +92,10 @@ module Jekyll
 			result
 		end
 
-		def render (context)
-			date = get_value(context, @text.strip)
+		def get_items_for_date (date)
+			items = []
 
 			feeds = Jekyll::Webring.feeds
-
-			items = []
 			feeds.each do |feed_items|
 				item_to_add = nil
 
@@ -114,9 +124,33 @@ module Jekyll
 			end
 
 			items = items.sort_by { |item| item['date'] }
-			items = items.take 3
 
+			items.take 3
+		end
+
+		def render (context)
 			site = context.registers[:site]
+			date = get_value(context, @text.strip)
+
+			webring_data = Jekyll::Webring.get_data(site)
+
+			if webring_data[date]
+				items = webring_data[date]
+			else
+				items = get_items_for_date(date)
+				webring_data[date] = items
+
+				filename = Jekyll::Webring::DATA_FILE
+				dirname = File.dirname filename
+				unless File.directory? dirname
+					FileUtils.mkdir_p dirname
+				end
+
+				File.open(filename, 'w') do |file|
+					file.write(webring_data.to_yaml)
+				end
+			end
+
 			liquid_opts = site.config['liquid']
 
 			content = Jekyll::Webring::TEMPLATE
