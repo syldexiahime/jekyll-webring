@@ -30,7 +30,7 @@ module Jekyll
 
 		CONFIG = Jekyll.configuration({})['webring']
 		LAYOUT_FILE = "#{ Jekyll.configuration['layouts_dir'] }/#{ CONFIG['layout_file'] }.html"
-		DATA_FILE = "#{ Jekyll.configuration['data_dir'] }/webring.yml"
+		DATA_FILE = "#{ Jekyll.configuration['data_dir'] }/#{ CONFIG['data_file'] }.yml"
 
 		@max_summary_length = CONFIG['max_summary_length'] || 256
 
@@ -152,14 +152,16 @@ module Jekyll
 				items = get_items_from_feeds(param)
 				webring_data[param] = items if param
 
-				filename = Jekyll::Webring::DATA_FILE
-				dirname = File.dirname filename
-				unless File.directory? dirname
-					FileUtils.mkdir_p dirname
-				end
+				if Jekyll::Webring::CONFIG['data_file']
+					filename = Jekyll::Webring::DATA_FILE
+					dirname = File.dirname filename
+					unless File.directory? dirname
+						FileUtils.mkdir_p dirname
+					end
 
-				File.open(filename, 'w') do |file|
-					file.write(webring_data.to_yaml)
+					File.open(filename, 'w') do |file|
+						file.write(webring_data.to_yaml)
+					end
 				end
 			end
 
