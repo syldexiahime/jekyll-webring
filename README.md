@@ -97,6 +97,6 @@ webring:
 
 ## Contributing
 
-If you'd like to contribute, please [send a patch](https://git-send-email.io) to this (mailing list)[https://lists.sr.ht/~syldexia/public-inbox] (<~syldexia/public-inbox@lists.sr.ht>)[mailto:~syldexia/public-inbox@lists.sr.ht]! (or just email feedback or issues or w/e)
+If you'd like to contribute, please [send a patch](https://git-send-email.io) to this [mailing list](https://lists.sr.ht/~syldexia/public-inbox) [<~syldexia/public-inbox@lists.sr.ht>](mailto:~syldexia/public-inbox@lists.sr.ht)! (or just email feedback or issues or w/e)
 
 I've not really used ruby before, so I'm sure my code is quite bad, and any contributions would be welcome!
