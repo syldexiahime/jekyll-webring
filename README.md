@@ -1,5 +1,7 @@
 # jekyll-webring plugin
 
+[![Gem Version](https://badge.fury.io/rb/jekyll-webring.svg)](https://badge.fury.io/rb/jekyll-webring)
+
 A plugin designed to generate a webring from rss feeds based on a date, so you can link to other blogs. Inspiried by [openring](https://git.sr.ht/~sircmpwn/openring).
 
 ## Installation
@@ -65,6 +67,8 @@ If the `layout_file` config option is set, you can create a liquid template for 
 webring:
   # Will save and read data from _data/webring.yml
   # suggested to add this file to excludes in _config.yml otherwise jekyll watch will get stuck in a permanant regenerate loop
+  # (I also suggest setting this if you want to guarantee having the same webring generated, as many feeds only show the most recent items
+  # and will be unable to have a webring item generated for them if not saved)
   # default: nil
   data_file: webring
 
@@ -93,5 +97,6 @@ webring:
 
 ## Contributing
 
-If you'd like to contribute, please [Send me a patch](https://git-send-email.io)!
+If you'd like to contribute, please [send a patch](https://git-send-email.io) to this (mailing list)[https://lists.sr.ht/~syldexia/public-inbox] (<~syldexia/public-inbox@lists.sr.ht>)[mailto:~syldexia/public-inbox@lists.sr.ht]! (or just email feedback or issues or w/e)
+
 I've not really used ruby before, so I'm sure my code is quite bad, and any contributions would be welcome!
