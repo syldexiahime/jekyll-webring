@@ -20,6 +20,8 @@ Gem::Specification.new do |spec|
 	
 	spec.add_runtime_dependency "jekyll"
 	spec.add_runtime_dependency "sanitize"
+	spec.add_runtime_dependency "feedjira"
+	spec.add_runtime_dependency "httparty"
 	
 	spec.add_development_dependency "bundler"
 end

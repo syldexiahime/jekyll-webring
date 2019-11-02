@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'rss'
-require 'open-uri'
+require 'feedjira'
+require 'httparty'
 require 'sanitize'
 require 'yaml'
 require 'fileutils'
@@ -41,26 +41,26 @@ module Jekyll
 				urls = CONFIG['feeds']
 
 				urls.each do |url|
-					open url do |rss|
-						feed = []
-						raw_feed = RSS::Parser.parse rss
-						raw_feed.items.each do |item|
-							sanitized = Sanitize.clean (item.content_encoded || item.description)
-							summary = "#{ sanitized[0 ... @max_summary_length] }"
+					feed = []
+					xml = HTTParty.get(url).body
+					raw_feed = Feedjira.parse(xml)
+					raw_feed.entries.each do |item|
+						sanitized = Sanitize.fragment(item.summary)
+						summary = sanitized.length > @max_summary_length ?
+							"#{ sanitized[0 ... @max_summary_length] }..." : sanitized
 
-							feed_item = {
-								'source_title' => raw_feed.channel.title,
-								'source_url'   => raw_feed.channel.link,
-								'title'        => item.title,
-								'url'          => item.link,
-								'_date'        => item.date,
-								'summary'      => summary,
-							}
+						feed_item = {
+							'source_title' => raw_feed.title,
+							'source_url'   => raw_feed.url,
+							'title'        => item.title,
+							'url'          => item.url,
+							'_date'        => item.published,
+							'summary'      => summary,
+						}
 
-							feed << feed_item
-						end
-						@feeds << feed
+						feed << feed_item
 					end
+					@feeds << feed
 				end
 			end
 
