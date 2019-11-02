@@ -45,7 +45,7 @@ module Jekyll
 					xml = HTTParty.get(url).body
 					raw_feed = Feedjira.parse(xml)
 					raw_feed.entries.each do |item|
-						sanitized = Sanitize.fragment(item.summary)
+						sanitized = Sanitize.fragment(item.content || item.summary)
 						summary = sanitized.length > @max_summary_length ?
 							"#{ sanitized[0 ... @max_summary_length] }..." : sanitized
 
