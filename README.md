@@ -54,7 +54,7 @@ If the `layout_file` config option is set, you can create a liquid template for 
 			<small class="source">
 				via <a href="{{ item.source_url }}">{{ item.source_title }}</a>
 			</small>
-			<small class="date">{{ item.date | date '%-d %B, %Y' }}</small>
+			<small class="date">{{ item.date }}</small>
 		</div>
 		{% endfor %}
 	</section>
@@ -93,6 +93,11 @@ webring:
   # options: ignore, use_oldest, use_latest, random
   # default: ignore
   no_item_at_date_behaviour: use_oldest
+
+  # The format the dates will be displayed in.
+  # If not set uses site.date_format, and if that is not set it reverts to default
+  # default: "%-d %B, %Y"
+  date_format: "%-d %B, %Y"
 ```
 
 ## Contributing

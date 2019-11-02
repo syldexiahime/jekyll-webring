@@ -21,7 +21,7 @@ module Jekyll
 						<small class="source">
 							via <a href="{{ item.source_url }}">{{ item.source_title }}</a>
 						</small>
-						<small class="date">{{ item.date | date '%-d %B, %Y' }}</small>
+						<small class="date">{{ item.date }}</small>
 					</div>
 					{% endfor %}
 				</section>
@@ -31,6 +31,7 @@ module Jekyll
 		CONFIG = Jekyll.configuration({})['webring']
 		LAYOUT_FILE = "#{ Jekyll.configuration['layouts_dir'] }/#{ CONFIG['layout_file'] }.html"
 		DATA_FILE = "#{ Jekyll.configuration['data_dir'] }/#{ CONFIG['data_file'] }.yml"
+		DATE_FORMAT = CONFIG['date_format'] || Jekyll.configuration['date_format'] || "%-d %B, %Y"
 
 		@max_summary_length = CONFIG['max_summary_length'] || 256
 
@@ -52,8 +53,8 @@ module Jekyll
 								'source_url'   => raw_feed.channel.link,
 								'title'        => item.title,
 								'url'          => item.link,
-								'date'         => item.date,
-								'summary'      => summary
+								'_date'        => item.date,
+								'summary'      => summary,
 							}
 
 							feed << feed_item
@@ -111,7 +112,7 @@ module Jekyll
 						item_to_add = nil
 
 						feed_items.each do |item|
-							if item['date'] < date
+							if item['_date'] < date
 								item_to_add = item
 								break
 							end
@@ -135,7 +136,7 @@ module Jekyll
 					end
 			end
 
-			items = items.sort_by { |item| item['date'] }
+			items = items.sort_by { |item| item['_date'] }
 
 			items
 		end
@@ -196,7 +197,10 @@ module Jekyll
 				:strict_variables => liquid_opts['strict_variables'],
 			}
 
-			payload['webring'] = items.take(Jekyll::Webring::CONFIG['num_items'] || 3)
+			webring_items = items.take(Jekyll::Webring::CONFIG['num_items'] || 3)
+			webring_items.each { |item| item['date'] = item['_date'].strftime(Jekyll::Webring::DATE_FORMAT) }
+
+			payload['webring'] = webring_items
 
 			template.render!(payload, info)
 		end
