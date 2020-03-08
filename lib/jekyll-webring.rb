@@ -37,13 +37,34 @@ module Jekyll
 
 		@feeds = [];
 		def self.feeds ()
+			urls = CONFIG['feeds']
+
+			if urls.empty?
+				return [];
+			end
+
 			if @feeds.empty?
-				urls = CONFIG['feeds']
+				Jekyll.logger.info "Webring:", "fetching rss feeds"
 
 				urls.each do |url|
+					Jekyll.logger.debug "Webring:", "fetching feed at #{ url }"
+
 					feed = []
-					xml = HTTParty.get(url).body
-					raw_feed = Feedjira.parse(xml)
+
+					begin
+						xml = HTTParty.get(url).body
+					rescue
+						Jekyll.logger.error "Webring:", "unable to fetch feed at #{ url }"
+						next
+					end
+
+					begin
+						raw_feed = Feedjira.parse(xml)
+					rescue
+						Jekyll.logger.error "Webring:", "unable to parse feed fetched from #{ url }"
+						next
+					end
+
 					raw_feed.entries.each do |item|
 						sanitized = Sanitize.fragment(item.content || item.summary)
 						summary = sanitized.length > @max_summary_length ?
