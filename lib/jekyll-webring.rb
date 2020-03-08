@@ -6,98 +6,115 @@ require 'sanitize'
 require 'yaml'
 require 'fileutils'
 
-module Jekyll
-	module Webring
-		TEMPLATE = <<~HTML
-			<section class="webring">
-				<h3>Articles from blogs I follow around the net</h3>
-				<section class="articles">
-					{% for item in webring %}
-					<div class="article">
-						<h4 class="title">
-							<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
-						</h4>
-						<p class="summary">{{ item.summary }}</p>
-						<small class="source">
-							via <a href="{{ item.source_url }}">{{ item.source_title }}</a>
-						</small>
-						<small class="date">{{ item.date }}</small>
-					</div>
-					{% endfor %}
-				</section>
+module JekyllWebring
+	TEMPLATE = <<~HTML
+		<section class="webring">
+			<h3>Articles from blogs I follow around the net</h3>
+			<section class="articles">
+				{% for item in webring %}
+				<div class="article">
+					<h4 class="title">
+						<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+					</h4>
+					<p class="summary">{{ item.summary }}</p>
+					<small class="source">
+						via <a href="{{ item.source_url }}">{{ item.source_title }}</a>
+					</small>
+					<small class="date">{{ item.date }}</small>
+				</div>
+				{% endfor %}
 			</section>
-		HTML
+		</section>
+	HTML
 
-		CONFIG = Jekyll.configuration({})['webring']
-		LAYOUT_FILE = "#{ Jekyll.configuration['layouts_dir'] }/#{ CONFIG['layout_file'] }.html"
-		DATA_FILE = "#{ Jekyll.configuration['data_dir'] }/#{ CONFIG['data_file'] }.yml"
-		DATE_FORMAT = CONFIG['date_format'] || Jekyll.configuration['date_format'] || "%-d %B, %Y"
+	def self.set_config (context)
+ 		jekyll_config = context.registers[:site].config
+		config = jekyll_config['webring'] || {}
 
-		@max_summary_length = CONFIG['max_summary_length'] || 256
-
-		@feeds = [];
-		def self.feeds ()
-			urls = CONFIG['feeds']
-
-			if urls.empty?
-				return [];
-			end
-
-			if @feeds.empty?
-				Jekyll.logger.info "Webring:", "fetching rss feeds"
-
-				urls.each do |url|
-					Jekyll.logger.debug "Webring:", "fetching feed at #{ url }"
-
-					feed = []
-
-					begin
-						xml = HTTParty.get(url).body
-					rescue
-						Jekyll.logger.error "Webring:", "unable to fetch feed at #{ url }"
-						next
-					end
-
-					begin
-						raw_feed = Feedjira.parse(xml)
-					rescue
-						Jekyll.logger.error "Webring:", "unable to parse feed fetched from #{ url }"
-						next
-					end
-
-					raw_feed.entries.each do |item|
-						sanitized = Sanitize.fragment(item.content || item.summary)
-						summary = sanitized.length > @max_summary_length ?
-							"#{ sanitized[0 ... @max_summary_length] }..." : sanitized
-
-						feed_item = {
-							'source_title' => raw_feed.title,
-							'source_url'   => raw_feed.url,
-							'title'        => item.title,
-							'url'          => item.url,
-							'_date'        => item.published,
-							'summary'      => summary,
-						}
-
-						feed << feed_item
-					end
-					@feeds << feed
-				end
-			end
-
-			@feeds
-		end
-
-		@data = nil
-		def self.get_data (site)
-			unless @data
-				@data = site.data['webring'] || {}
-			end
-
-			@data
-		end
+		@config ||= {
+			'feeds'                     => config['feeds'] || [],
+			'layout_file'               => config['layout_file'] ? "#{ jekyll_config['layouts_dir'] }/#{ config['layout_file'] }.html" : '',
+			'data_file'                 => config['data_file']   ? "#{ jekyll_config['data_dir'] }/#{ config['data_file'] }.yml" : '',
+			'date_format'               => jekyll_config['date_format'] || config['date_format'] || "%-d %B, %Y",
+			'max_summary_length'        => config['max_summary_length'] || 256,
+			'no_item_at_date_behaviour' => config['no_item_at_date_behaviour'],
+			'num_items'                 => config['num_items'] || 3,
+		}
 	end
 
+	def self.config ()
+		@config
+	end
+
+	@feeds = [];
+	def self.feeds ()
+		urls = config['feeds']
+
+		if urls.empty?
+			return [];
+		end
+
+		if @feeds.empty?
+			Jekyll.logger.info("Webring:", "fetching rss feeds")
+
+			urls.each do |url|
+				Jekyll.logger.debug("Webring:",
+					"fetching feed at #{ url }")
+
+				feed = []
+
+				begin
+					xml = HTTParty.get(url).body
+				rescue
+					Jekyll.logger.error("Webring:",
+						"unable to fetch feed at #{ url }")
+					next
+				end
+
+				begin
+					raw_feed = Feedjira.parse(xml)
+				rescue
+					Jekyll.logger.error("Webring:",
+						"unable to parse feed fetched from #{ url }")
+					next
+				end
+
+				raw_feed.entries.each do |item|
+					sanitized = Sanitize.fragment(
+						item.content || item.summary)
+
+					summary = sanitized.length > config['max_summary_length'] ?
+						"#{ sanitized[0 ... config['max_summary_length']] }..." : sanitized
+
+					feed_item = {
+						'source_title' => raw_feed.title,
+						'source_url'   => raw_feed.url,
+						'title'        => item.title,
+						'url'          => item.url,
+						'_date'        => item.published,
+						'summary'      => summary,
+					}
+
+					feed << feed_item
+				end
+				@feeds << feed
+			end
+		end
+
+		@feeds
+	end
+
+	@data = nil
+	def self.get_data (site)
+		unless @data
+			@data = site.data['webring'] || {}
+		end
+
+		@data
+	end
+end
+
+module Jekyll
 	class WebringTag < Liquid::Tag
 		def initialize (tag_name, text, tokens)
 			super
@@ -121,7 +138,7 @@ module Jekyll
 		def get_items_from_feeds (param)
 			items = []
 
-			feeds = Jekyll::Webring.feeds
+			feeds = JekyllWebring.feeds
 			case param
 				when 'random'
 					feeds.each do |feed_items|
@@ -144,7 +161,7 @@ module Jekyll
 							next
 						end
 
-						case Jekyll::Webring::CONFIG['no_item_at_date_behaviour']
+						case JekyllWebring::config['no_item_at_date_behaviour']
 							when 'use_oldest'
 								items << feed_items.last
 							when 'use_latest'
@@ -163,10 +180,12 @@ module Jekyll
 		end
 
 		def render (context)
+			JekyllWebring::set_config(context)
+
 			site = context.registers[:site]
 			param = get_value(context, @text.strip)
 
-			webring_data = Jekyll::Webring.get_data(site)
+			webring_data = JekyllWebring.get_data(site)
 
 			if webring_data[param]
 				items = webring_data[param]
@@ -174,8 +193,8 @@ module Jekyll
 				items = get_items_from_feeds(param)
 				webring_data[param] = items if param
 
-				if Jekyll::Webring::CONFIG['data_file']
-					filename = Jekyll::Webring::DATA_FILE
+				if JekyllWebring::config['data_file']
+					filename = JekyllWebring::config['data_file']
 					dirname = File.dirname filename
 					unless File.directory? dirname
 						FileUtils.mkdir_p dirname
@@ -189,11 +208,11 @@ module Jekyll
 
 			liquid_opts = site.config['liquid']
 
-			content = Jekyll::Webring::TEMPLATE
+			content = JekyllWebring::TEMPLATE
 			payload = context
 
 			# stuff beyond this point mainly hacked together from jekyll internals
-			filename = Jekyll::Webring::LAYOUT_FILE
+			filename = JekyllWebring::config['layout_file']
 			if File.file? filename
 				begin
 					content = File.read filename
@@ -218,8 +237,8 @@ module Jekyll
 				:strict_variables => liquid_opts['strict_variables'],
 			}
 
-			webring_items = items.take(Jekyll::Webring::CONFIG['num_items'] || 3)
-			webring_items.each { |item| item['date'] = item['_date'].strftime(Jekyll::Webring::DATE_FORMAT) }
+			webring_items = items.take(JekyllWebring::config['num_items'])
+			webring_items.each { |item| item['date'] = item['_date'].strftime(JekyllWebring::config['date_format']) }
 
 			payload['webring'] = webring_items
 
